@@ -13,9 +13,9 @@ import (
 
 type Throttle struct {
 	instances	int				// number of unique goroutines using the limiter
-	calls		int32			// limit to max of calls per dur	
-	dur			time.Duration	// max calls per dur		
-	counter		int32			// atomic counter of calls, counts up, can be greater than max
+	calls		int32			// limit to calls per dur	
+	dur			time.Duration	//		
+	counter		int32			// atomic counter of calls, counts up, can be greater than calls
 	ticker		*time.Ticker	// ticks by dur
 	tim			time.Time		// for debugging
 	sleepers	chan int		// channel for notifcation of sleeping goroutines, they write their instance
@@ -26,36 +26,18 @@ type Throttle struct {
 func (t *Throttle) limiter() {
 	var cnt int
 	for {
-//top:
-		//fmt.Printf("limiter: Set, counter=%d\n", 0 + int32(cnt))
 		atomic.StoreInt32(&t.counter, 0 + int32(cnt))
 		for i := 0; i < cnt; i++ {
 			t.wakeups[<-t.sleepers] <-struct{}{}
 		}
 		t.tim = <- t.ticker.C
-//		atomic.StoreInt32(&t.Counter, 0)
-		//fmt.Printf("limiter: tim=%v, counter=%d\n", t.Tim, t.Counter)
-/*
-		cnt = 0
-		for {
-			select {
-			case <-t.C:
-				cnt++ // // count each waiting process
-			default:
-				fmt.Printf("limiter: breakout cnt=%d\n", cnt)
-				goto top
-			}
-		}
-*/
 		cnt = len(t.sleepers)
-		//fmt.Printf("limiter: breakout cnt=%d\n", cnt)
 	}
 }
 
 // Create a throttle structure that limits API calling to calls per dur.
 // Each goroutine calling Limit must call it with a unique number between 0 and instamces-1.
 func New(calls int, dur time.Duration, instances int) *Throttle {
-	fmt.Printf("maxCalls: %d, sec=%v\n", calls, dur)
 	t := new(Throttle)
 	t.calls = int32(calls)
 	t.dur = dur
@@ -71,8 +53,8 @@ func New(calls int, dur time.Duration, instances int) *Throttle {
 }
 
 // Call Limit before each API call to rate limit.
-// Check increments the counter and if it is above to max it sleeps the goroutine
-// until the limiter wakes it up.
+// Check increments a counter and if it is above the maximum it sleeps the goroutine
+// in a channel until the limiter wakes it up.
 func (t *Throttle) Limit(inst int) {
 	if inst > t.instances-1 {
 		panic("Limit")
@@ -80,8 +62,6 @@ func (t *Throttle) Limit(inst int) {
 	v := atomic.AddInt32(&t.counter, 1)
 	if v > t.calls {
 		t.sleepers <- inst // struct{}{}
-		//fmt.Printf("%d: Check: v=%d, Sleep\n", inst, v)
 		<- t.wakeups[inst]
-		//fmt.Printf("%d: Check: v=%d, Wake\n", inst, t.Counter)
 	}
 }
