@@ -3,11 +3,10 @@
 // Package limiter implements an API rate limiter which can be used on the client or server side.
 // Limiter works to prevent livelock by waking waiting goroutines in FIFO order.
 // The package is safe and can be used from goroutines, no wrapper mutex is required.
-package limiter
+package limiter // import "leb.io/limiter"
 
 import (
 	"time"
-	"fmt"
 	"sync/atomic"
 )
 

@@ -2,7 +2,7 @@ package main
 import "flag"
 import "fmt"
 import "time"
-import "github.com/tildeleb/limiter"
+import "leb.io/limiter"
 import "github.com/tildeleb/cuckoo/siginfo"
 
 var procs = flag.Int("p", 10, "goroutines")
