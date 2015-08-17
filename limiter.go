@@ -6,30 +6,30 @@
 package limiter // import "leb.io/limiter"
 
 import (
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 type Throttle struct {
-	instances	int				// number of unique goroutines using the limiter
-	calls		int32			// limit to calls per dur	
-	dur			time.Duration	//		
-	counter		int32			// atomic counter of calls, counts up, can be greater than calls
-	ticker		*time.Ticker	// ticks by dur
-	tim			time.Time		// for debugging
-	sleepers	chan int		// channel for notifcation of sleeping goroutines, they write their instance
-	wakeups		[]chan struct{}	// waiting goroutines, one channel for each instance
+	instances int             // number of unique goroutines using the limiter
+	calls     int32           // limit to calls per dur
+	dur       time.Duration   //
+	counter   int32           // atomic counter of calls, counts up, can be greater than calls
+	ticker    *time.Ticker    // ticks by dur
+	tim       time.Time       // for debugging
+	sleepers  chan int        // channel for notifcation of sleeping goroutines, they write their instance
+	wakeups   []chan struct{} // waiting goroutines, one channel for each instance
 }
 
 // This function limits the number of API calls.
 func (t *Throttle) limiter() {
 	var cnt int
 	for {
-		atomic.StoreInt32(&t.counter, 0 + int32(cnt))
+		atomic.StoreInt32(&t.counter, 0+int32(cnt))
 		for i := 0; i < cnt; i++ {
-			t.wakeups[<-t.sleepers] <-struct{}{}
+			t.wakeups[<-t.sleepers] <- struct{}{}
 		}
-		t.tim = <- t.ticker.C
+		t.tim = <-t.ticker.C
 		cnt = len(t.sleepers)
 	}
 }
@@ -61,6 +61,6 @@ func (t *Throttle) Limit(inst int) {
 	v := atomic.AddInt32(&t.counter, 1)
 	if v > t.calls {
 		t.sleepers <- inst // struct{}{}
-		<- t.wakeups[inst]
+		<-t.wakeups[inst]
 	}
 }

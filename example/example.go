@@ -1,4 +1,5 @@
 package main
+
 import "flag"
 import "fmt"
 import "time"
@@ -8,24 +9,24 @@ import "github.com/tildeleb/cuckoo/siginfo"
 var procs = flag.Int("p", 10, "goroutines")
 var iter = flag.Int("i", 10, "iterations")
 var nlocks = flag.Int("l", 1, "locks")
-var freq = flag.Duration("f", 1.0 * time.Second, "freqencies")
+var freq = flag.Duration("f", 1.0*time.Second, "freqencies")
 var maxCalls = flag.Int("m", 10, "max calls")
-var tp = flag.Duration("t", 1.0 * time.Second, "time period")
+var tp = flag.Duration("t", 1.0*time.Second, "time period")
 var vf = flag.Bool("v", false, "verbose")
 
 var counters []int
-var term chan bool		// channel used for termination
+var term chan bool // channel used for termination
 
 func tdiff(begin, end time.Time) time.Duration {
-    d := end.Sub(begin)
-    return d
+	d := end.Sub(begin)
+	return d
 }
 
 func apiCaller(t *limiter.Throttle, rate time.Duration, inst, n int) {
 	//fmt.Printf("%d: apiCaller: inst, rate=%v, n=%d\n", inst, rate, n)
 	ticker := time.NewTicker(rate)
 	for i := 0; i < n; i++ {
-		<- ticker.C
+		<-ticker.C
 		t.Limit(inst)
 		counters[inst]++
 		if *vf {
@@ -46,9 +47,9 @@ func main() {
 	fmt.Printf("Throttle: tp=%v, freq=%v\n", *tp, *freq)
 	counters = make([]int, *procs)
 	term = make(chan bool)
-    siginfo.SetHandler(f)
+	siginfo.SetHandler(f)
 	t := limiter.New(*maxCalls, *tp, *procs)
-	for i:= 0; i < *procs; i++ {
+	for i := 0; i < *procs; i++ {
 		go apiCaller(t, *freq, i, *iter)
 	}
 	// and the apiCallers run
